@@ -1,7 +1,7 @@
 import cv2
 
 # Define the initial cropping coordinates
-x1, y1, x2, y2 = 150, 155, 355, 370
+x1, y1, x2, y2 = 115, 135, 385, 475
 
 # Function to detect and identify objects in the frame
 def detect_objects(frame, x1, y1, x2, y2):
@@ -20,14 +20,14 @@ def detect_objects(frame, x1, y1, x2, y2):
     # Find contours in the edge map
     contours, _ = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # List to store center points
+    center_points = []
+
     # Iterate through detected contours
     for contour in contours:
         # Approximate the contour to determine its shape
         epsilon = 0.04 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
-
-        # Get the number of vertices (sides) of the detected shape
-        sides = len(approx)
 
         # Get the centroid of the contour
         M = cv2.moments(contour)
@@ -35,13 +35,16 @@ def detect_objects(frame, x1, y1, x2, y2):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
 
+            # Append center point to the list
+            center_points.append((cx, cy))
+
             # Determine the color at the centroid
             color = cropped_frame[cy, cx]
 
             # Identify the shape based on the number of sides
-            if sides == 3:
+            if len(approx) == 3:
                 shape = "Triangle"
-            elif sides == 4:
+            elif len(approx) == 4:
                 shape = "Square"
             else:
                 shape = "Circle"
@@ -53,11 +56,11 @@ def detect_objects(frame, x1, y1, x2, y2):
             color_name = ""
             color_code = f"{color[0]}, {color[1]}, {color[2]}"  # RGB format
 
-            if color[1] > 100 and color[2] < 100:  # Green
+            if color[1] > 100 and color[2] < 100 and color[0] < 200:  # Green
                 color_name = "Green"
-            elif color[2] > 150 and color[1] > 150 and color[0] < 90:  # Yellow
+            elif color[2] > 180 and color[1] > 180:  # Yellow
                 color_name = "Yellow"
-            elif color[0] > 200 and color[2] < 40:   # Blue
+            elif color[0] > 200:   # Blue
                 color_name = "Blue"
             else:
                 color_name = "Red"
@@ -73,7 +76,7 @@ def detect_objects(frame, x1, y1, x2, y2):
             # Draw a circle at the centroid on the cropped frame
             cv2.circle(cropped_frame, (cx, cy), 5, (0, 0, 255), -1)
 
-    return cropped_frame
+    return cropped_frame, center_points
 
 # Create a VideoCapture object for the camera (camera index 0 for built-in camera)
 cap = cv2.VideoCapture(0)
@@ -88,10 +91,14 @@ while True:
     ret, frame = cap.read()
 
     # Detect and identify objects in the frame and crop it
-    cropped_frame = detect_objects(frame, x1, y1, x2, y2)
+    cropped_frame, center_points = detect_objects(frame, x1, y1, x2, y2)
 
     # Display the cropped frame with detected objects and their colors
     cv2.imshow('Object Detection', cropped_frame)
+
+    # Print center points to the terminal
+    for i, (cx, cy) in enumerate(center_points):
+        print(f"Object {i + 1} Center Point: ({cx}, {cy})")
 
     # Check for a key press to adjust the cropping region (press 'c' key)
     key = cv2.waitKey(1) & 0xFF
@@ -99,10 +106,10 @@ while True:
         # Allow the user to adjust the cropping coordinates
         x1, y1, x2, y2 = cv2.selectROI('Object Detection', cropped_frame, fromCenter=False, showCrosshair=True)
         # Adjust the coordinates to the cropped frame's coordinates
-        x1 += 150
-        y1 += 155
-        x2 += 150
-        y2 += 155
+        x1 += 110
+        y1 += 110
+        x2 += 110
+        y2 += 110
     # Check for a key press to exit the loop (press 'q' key)
     elif key == ord('q'):
         break
