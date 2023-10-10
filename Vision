@@ -1,0 +1,112 @@
+import cv2
+
+# Define the initial cropping coordinates
+x1, y1, x2, y2 = 150, 155, 355, 370
+
+# Function to detect and identify objects in the frame
+def detect_objects(frame, x1, y1, x2, y2):
+    # Crop the frame using the specified coordinates
+    cropped_frame = frame[y1:y2, x1:x2]
+
+    # Convert the cropped frame to grayscale
+    gray = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
+
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Detect edges using Canny edge detector
+    edges = cv2.Canny(blurred, 50, 150)
+
+    # Find contours in the edge map
+    contours, _ = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Iterate through detected contours
+    for contour in contours:
+        # Approximate the contour to determine its shape
+        epsilon = 0.04 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
+
+        # Get the number of vertices (sides) of the detected shape
+        sides = len(approx)
+
+        # Get the centroid of the contour
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+
+            # Determine the color at the centroid
+            color = cropped_frame[cy, cx]
+
+            # Identify the shape based on the number of sides
+            if sides == 3:
+                shape = "Triangle"
+            elif sides == 4:
+                shape = "Square"
+            else:
+                shape = "Circle"
+
+            # Text color
+            text_color = (255, 255, 255)
+
+            # Object's name and color
+            color_name = ""
+            color_code = f"{color[0]}, {color[1]}, {color[2]}"  # RGB format
+
+            if color[1] > 100 and color[2] < 100:  # Green
+                color_name = "Green"
+            elif color[2] > 150 and color[1] > 150 and color[0] < 90:  # Yellow
+                color_name = "Yellow"
+            elif color[0] > 200 and color[2] < 40:   # Blue
+                color_name = "Blue"
+            else:
+                color_name = "Red"
+
+            object_info = f"{shape}: {color_name} ({color_code})"
+
+            # Draw the shape and color text on the cropped frame
+            cv2.putText(cropped_frame, object_info, (cx - 50, cy - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
+
+            # Draw a contour around the detected shape on the cropped frame
+            cv2.drawContours(cropped_frame, [approx], -1, (0, 255, 0), 2)
+
+            # Draw a circle at the centroid on the cropped frame
+            cv2.circle(cropped_frame, (cx, cy), 5, (0, 0, 255), -1)
+
+    return cropped_frame
+
+# Create a VideoCapture object for the camera (camera index 0 for built-in camera)
+cap = cv2.VideoCapture(0)
+
+# Check if the camera was opened successfully
+if not cap.isOpened():
+    print("Error: Could not open the camera.")
+    exit()
+
+while True:
+    # Read a frame from the camera
+    ret, frame = cap.read()
+
+    # Detect and identify objects in the frame and crop it
+    cropped_frame = detect_objects(frame, x1, y1, x2, y2)
+
+    # Display the cropped frame with detected objects and their colors
+    cv2.imshow('Object Detection', cropped_frame)
+
+    # Check for a key press to adjust the cropping region (press 'c' key)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('c'):
+        # Allow the user to adjust the cropping coordinates
+        x1, y1, x2, y2 = cv2.selectROI('Object Detection', cropped_frame, fromCenter=False, showCrosshair=True)
+        # Adjust the coordinates to the cropped frame's coordinates
+        x1 += 150
+        y1 += 155
+        x2 += 150
+        y2 += 155
+    # Check for a key press to exit the loop (press 'q' key)
+    elif key == ord('q'):
+        break
+
+# Release the VideoCapture object and close any OpenCV windows
+cap.release()
+cv2.destroyAllWindows()
