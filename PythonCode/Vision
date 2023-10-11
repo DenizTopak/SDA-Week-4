@@ -3,6 +3,8 @@ import cv2
 # Define the initial cropping coordinates
 x1, y1, x2, y2 = 115, 135, 385, 475
 
+selected_shape_info = None
+
 # Function to detect and identify objects in the frame
 def detect_objects(frame, x1, y1, x2, y2):
     # Crop the frame using the specified coordinates
@@ -20,7 +22,7 @@ def detect_objects(frame, x1, y1, x2, y2):
     # Find contours in the edge map
     contours, _ = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # List to store center points
+    # List to store center points and shape
     center_points = []
 
     # Iterate through detected contours
@@ -35,11 +37,17 @@ def detect_objects(frame, x1, y1, x2, y2):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
 
-            # Append center point to the list
-            center_points.append((cx, cy))
-
             # Determine the color at the centroid
             color = cropped_frame[cy, cx]
+            color_name = ""
+            if color[1] > 100 and color[2] < 100 and color[0] < 200:  # Green
+                color_name = "Green"
+            elif color[2] > 180 and color[1] > 180:  # Yellow
+                color_name = "Yellow"
+            elif color[0] > 200:  # Blue
+                color_name = "Blue"
+            else:
+                color_name = "Red"
 
             # Identify the shape based on the number of sides
             if len(approx) == 3:
@@ -49,25 +57,11 @@ def detect_objects(frame, x1, y1, x2, y2):
             else:
                 shape = "Circle"
 
-            # Text color
-            text_color = (255, 255, 255)
-
-            # Object's name and color
-            color_name = ""
-            color_code = f"{color[0]}, {color[1]}, {color[2]}"  # RGB format
-
-            if color[1] > 100 and color[2] < 100 and color[0] < 200:  # Green
-                color_name = "Green"
-            elif color[2] > 180 and color[1] > 180:  # Yellow
-                color_name = "Yellow"
-            elif color[0] > 200:   # Blue
-                color_name = "Blue"
-            else:
-                color_name = "Red"
-
-            object_info = f"{shape}: {color_name} ({color_code})"
+            object_info = f"{shape}: {color_name} - Coordinates: ({cx}, {cy})"
+            center_points.append((cx, cy, shape, color_name, object_info))
 
             # Draw the shape and color text on the cropped frame
+            text_color = (255, 255, 255)
             cv2.putText(cropped_frame, object_info, (cx - 50, cy - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
 
             # Draw a contour around the detected shape on the cropped frame
@@ -86,6 +80,18 @@ if not cap.isOpened():
     print("Error: Could not open the camera.")
     exit()
 
+# Define a callback function for mouse events
+def on_mouse(event, x, y, flags, param):
+    global selected_shape_info
+    if event == cv2.EVENT_LBUTTONDOWN:
+        for i, (cx, cy, shape, color_name, object_info) in enumerate(center_points):
+            if abs(x - cx) < 10 and abs(y - cy) < 10:
+                selected_shape_info = f"Selected Object {i + 1}: {object_info}"
+                print(selected_shape_info)
+
+cv2.namedWindow("Object Detection")
+cv2.setMouseCallback("Object Detection", on_mouse)
+
 while True:
     # Read a frame from the camera
     ret, frame = cap.read()
@@ -96,20 +102,16 @@ while True:
     # Display the cropped frame with detected objects and their colors
     cv2.imshow('Object Detection', cropped_frame)
 
-    # Print center points to the terminal
-    for i, (cx, cy) in enumerate(center_points):
-        print(f"Object {i + 1} Center Point: ({cx}, {cy})")
-
     # Check for a key press to adjust the cropping region (press 'c' key)
     key = cv2.waitKey(1) & 0xFF
     if key == ord('c'):
         # Allow the user to adjust the cropping coordinates
         x1, y1, x2, y2 = cv2.selectROI('Object Detection', cropped_frame, fromCenter=False, showCrosshair=True)
         # Adjust the coordinates to the cropped frame's coordinates
-        x1 += 110
-        y1 += 110
-        x2 += 110
-        y2 += 110
+        x1 += 115
+        y1 += 135
+        x2 += 115
+        y2 += 135
     # Check for a key press to exit the loop (press 'q' key)
     elif key == ord('q'):
         break
