@@ -5,18 +5,7 @@ import time
 from serial.tools import list_ports
 
 
-"""-------The DoBot Control Class-------
-Variables:
-suction = Suction is currently on/off
-picking: shows if the dobot is currently picking or dropping an item
-api = variable for accessing the dobot .dll functions
-home% = home position for %
-                                  """
-####### List of future possibilities ######
-## Joint angles
-## Speed vs Accell modes?
-##SetPTPCoordinateParams(api, xyzVelocity, xyzAcceleration, rVelocity,  rAcceleration,  isQueued=0):
-## Other misc features from the dType and/or the DoBot studio
+"""-------The DoBot Control Class-------"""
 
 CON_STR = {
     dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
@@ -26,7 +15,7 @@ CON_STR = {
 
 #Main control class for the DoBot Magician.
 class DoBotArm:
-    def __init__(self, port, homeX, homeY, homeZ, home = True, homingWait = True):
+    def __init__(self, port, homeX, homeY, homeZ, home = True, homingWait = False):
         self.suction = False
         self.picking = False
         self.api = dType.load()
@@ -45,7 +34,7 @@ class DoBotArm:
         self.dobotDisconnect()
 
     #Attempts to connect to the dobot
-    def dobotConnect(self, home = True, homingWait = True):
+    def dobotConnect(self, home = True, homingWait = False):
         if(self.connected):
             print("You're already connected")
         else:
