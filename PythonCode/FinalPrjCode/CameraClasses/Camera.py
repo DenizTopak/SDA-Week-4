@@ -3,13 +3,15 @@ from pygame.locals import *
 
 class Camera():
 
-    # Init cam object
+    # Init camera object
     def __init__(self, selected_shape_info, x1, y1, x2, y2):
+        # Constants for cropping camera view
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
 
+        # Information about clicked shape coordinates
         self.selected_shape_infoX = selected_shape_info
         self.selected_shape_infoY = selected_shape_info
 
@@ -21,17 +23,16 @@ class Camera():
             print("Error: Could not open the camera.")
             exit()
 
-        cv2.namedWindow("Object Detection")
-        cv2.setMouseCallback("Object Detection", self.on_mouse)
+        cv2.namedWindow("DoBot camera control")
+        cv2.setMouseCallback("DoBot camera control", self.on_mouse)
         
-
 
     # Function to detect and identify objects in the frame
     def detect_objects(self, frame, x1, y1, x2, y2):
         # Crop the frame using the specified coordinates
         cropped_frame = frame[y1:y2, x1:x2]
 
-        # Mirror image to match dobot and camera axis 
+        # Rotate image to match dobot and camera axis 
         trueFrame = cv2.rotate(cropped_frame, cv2.ROTATE_90_CLOCKWISE)
 
         # Convert the cropped frame to grayscale
@@ -116,27 +117,15 @@ class Camera():
         # Read a frame from the camera
         ret, frame = self.cap.read()
 
-        # # Mirror image to match dobot and camera axis 
-        # frame_flip = cv2.flip(frame, 0)
-
         # Detect and identify objects in the frame and crop it
         cropped_frame, center_points = self.detect_objects(frame, self.x1, self.y1, self.x2, self.y2)        
 
         # Display the cropped frame with detected objects and their colors
         cv2.imshow('Object Detection', cropped_frame)
 
-        # Check for a key press to adjust the cropping region (press 'c' key)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('c'):
-            # Allow the user to adjust the cropping coordinates
-            self.x1, self.y1, self.x2, self.y2 = cv2.selectROI('Object Detection', cropped_frame, fromCenter=False, showCrosshair=True)
-            # Adjust the coordinates to the cropped frame's coordinates
-            self.x1 += 115
-            self.y1 += 135
-            self.x2 += 115
-            self.y2 += 135
         # Check for a key press to exit the loop (press 'q' key)
-        elif key == ord('q'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             self.quitCamera()
             exit()
 

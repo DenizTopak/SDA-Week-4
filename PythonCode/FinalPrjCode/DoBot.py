@@ -4,9 +4,9 @@ import DobotDllType as dType
 import time
 from serial.tools import list_ports
 
+# DoBot control class
 
-"""-------The DoBot Control Class-------"""
-
+# DoBot error codes
 CON_STR = {
     dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
     dType.DobotConnect.DobotConnect_NotFound: "DobotConnect_NotFound",
@@ -60,7 +60,6 @@ class DoBotArm:
         if(z != None):
             self.homeZ = z
         dType.SetQueuedCmdClear(self.api)
-
         dType.SetHOMEParams(self.api, self.homeX, self.homeY, self.homeZ, 0, isQueued = 1)
         dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
         dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
@@ -73,7 +72,6 @@ class DoBotArm:
     def wait_rehoming(self):
         if(self.home_time > (time.time() - 25)):
             time.sleep(25 + self.home_time - time.time())
-        
 
     #Returns to home location and then disconnects
     def dobotDisconnect(self):
@@ -116,7 +114,6 @@ class DoBotArm:
     def moveArmRelXYZ(self, xrel, yrel, zrel, wait = True, jump = False):
         positions = self.getPosition()
         return self.moveArmXYZ(positions[0] + xrel, positions[1] + yrel, positions[2] + zrel, wait, jump)
-    
     
     # By passing on None as a coordinate parameter, the current arm position in givven axis will be used
     def moveArmXYZ(self,x,y, z, wait = True, jump = False):

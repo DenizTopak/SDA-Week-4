@@ -4,11 +4,12 @@ from CameraClasses import Camera as Cm  # add camera and UI class code
 import time
 from serial.tools import list_ports
 
-
+# Constants for camera frame cropping
 x1, y1, x2, y2 = 115, 135, 385, 475
 
+# Scale factors for matching camera coordinates to DoBot coordinates
 xScaleFactor = 2.08
-yScaleFactor = 2.12 # 1.8, smaller for more inwards
+yScaleFactor = 2.12
 yAddFactor = 20
 xAddFactor = -4
 
@@ -20,17 +21,18 @@ def main():
     topLeftX, topLeftY = 0, 0
     groundLVL = 0
     
-    print("Connecting")
-    
+    # Create and init objects
     print("initialising DoBot")
     botController = Dbt.DoBotArm(port, homeX, homeY, homeZ) 
     print("initialising Camera")
     camera = Cm.Camera(None, x1, y1, x2, y2)
 
+    # Sleep 10s to account for DoBot homing routine
     time.sleep(10)
     print("initialising Complete")
 
-    input('To calibrate arm to the vision field, move the arm suction cup to the far-left corner of the camera vision field, touching the floor, followed by [Enter]')
+    # Get some coordinates to determine the real world position of the arm and conveyor belt, this should make the code more flexible
+    input('To calibrate arm to the vision field, move the arm suction cup to the far-left corner of the camera vision field compared to the arm, touching the floor, followed by [Enter]')
     topLeftX, topLeftY, groundLVL = botController.getPosition()[0], botController.getPosition()[1], botController.getPosition()[2] 
     print(topLeftX, topLeftY, groundLVL)
 
@@ -38,47 +40,32 @@ def main():
     conveyorX, conveyorY, conveyorHeight = botController.getPosition()[0], botController.getPosition()[1], botController.getPosition()[2] 
     print(conveyorX, conveyorY, conveyorHeight)
 
-    time.sleep(5)
 
     # move to home pos
+    time.sleep(2)
     botController.moveArmXYZ(homeX, homeY, homeZ)
     time.sleep(3)
 
-    print("done callibrating, starting arm functionality")
+    # Instructions for user
+    print("Done callibrating, starting arm functionality")
+    print("Click a shape centroid have the arm move it, press q to quit")
 
     while True:
+        # Run vision code
         camera.doCameraThings()
+        
+        # if a shape is clicked in the UI
         if (camera.selected_shape_infoX != None and camera.selected_shape_infoY != None):
-            print(botController.getPosition())
-            response1 = input("q to exit, g to grab shape, s to toggle suction if in wrong state, h for rehome")
-            # response2 = input("Give y  (int), r for real run")
-            # response3 = input("Give z  (int)")
-            if(response1 == "q"):
-                break
-            elif(response1 == "g"):
-                print("moving to x y")
-                print(camera.selected_shape_infoX)
-                print(camera.selected_shape_infoY)
-                cX = camera.selected_shape_infoX
-                cY = camera.selected_shape_infoY 
-                grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight)
-            elif(response1 == "s"):
-                botController.toggleSuction()
-            elif(response1 == "h"):
-                botController.moveHome()
+            print("moving to (x y)")
+            cX = camera.selected_shape_infoX
+            cY = camera.selected_shape_infoY 
+            print(cX)
+            print(cY)
+            # Function for picking sequence
+            grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight)
+            
 
-            else:
-                print("unknown command") 
-            # else:
-            #     botController.moveArmXYZ(int(response1), int(response2), int(response3))
-            #     time.sleep(2)
-            #     print("moved to")
-            #     print(botController.getPosition())
-                
-    time.sleep(5)
-
-    
-
+# Function for port selection, generally not needed but used in case of multiple usb devices
 def port_selection():
     # Choosing port
     available_ports = list_ports.comports()
@@ -89,37 +76,40 @@ def port_selection():
     choice = int(input('Choose port by typing a number followed by [Enter]: '))
     return available_ports[choice].device
 
-
+# Picking sequence function, including translation of camera coordinates to DoBot coordinates
 def grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight):
-    # move to safe pos in case this hasnt been done aleady
+
+    # Calculate target DoBot coordinates using current object pixel coordinates
+    targetX = topLeftX - (cX / xScaleFactor) + xAddFactor
+    targetY = topLeftY + (cY / yScaleFactor) + yAddFactor
+
+    # Move to safe position in case this has not been done aleady
     botController.moveHome()
 
-    # move above
-    botController.moveArmXYZ(topLeftX - (cX / xScaleFactor)+ xAddFactor, topLeftY + (cY / yScaleFactor) + yAddFactor, groundLVL+30)
+    # Move above object to be picked
+    botController.moveArmXYZ(targetX, targetY, groundLVL + 30)
     time.sleep(1)
 
-    # grab
+    # Grab the object
     botController.toggleSuction()
-    botController.moveArmXYZ(topLeftX - (cX / xScaleFactor) + xAddFactor, topLeftY + (cY / yScaleFactor) + yAddFactor, groundLVL+15)
+    botController.moveArmXYZ(targetX, targetY, groundLVL+15)
     time.sleep(1)
-    botController.moveArmXYZ(topLeftX - (cX / xScaleFactor) + xAddFactor, topLeftY + (cY / yScaleFactor) + yAddFactor, groundLVL+50)
+    botController.moveArmXYZ(targetX, targetY, groundLVL+50)
 
-    # move to safe pos
+    # Move arm to safe position to avoid locking the arm
     botController.moveHome()
-    # time.sleep(1)
     
-    # drop on belt
+    # Drop object on the conveyor belt
     botController.moveArmXYZ(conveyorX, conveyorY, conveyorHeight+35)
     time.sleep(1)
     botController.toggleSuction()
     time.sleep(1)
     botController.moveArmXYZ(conveyorX, conveyorY, conveyorHeight+50)
 
-    # move to safe pos
+    # Move to safe position
     botController.moveHome()
-    time.sleep(1)
 
-    # move belt
+    # Move conveyor belt
     botController.SetConveyor(True, -15000)
     time.sleep(2)
     botController.SetConveyor(False)
