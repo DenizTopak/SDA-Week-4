@@ -15,7 +15,7 @@ CON_STR = {
 
 #Main control class for the DoBot Magician.
 class DoBotArm:
-    def __init__(self, port, homeX, homeY, homeZ, home = True, homingWait = False):
+    def __init__(self, port, homeX, homeY, homeZ, home = True, homingWait = True):
         self.suction = False
         self.picking = False
         self.api = dType.load()
@@ -34,7 +34,7 @@ class DoBotArm:
         self.dobotDisconnect()
 
     #Attempts to connect to the dobot
-    def dobotConnect(self, home = True, homingWait = False):
+    def dobotConnect(self, home = True, homingWait = True):
         if(self.connected):
             print("You're already connected")
         else:
@@ -72,7 +72,7 @@ class DoBotArm:
         
     def wait_rehoming(self):
         if(self.home_time > (time.time() - 25)):
-            time.sleep(1 + self.home_time - time.time())
+            time.sleep(25 + self.home_time - time.time())
         
 
     #Returns to home location and then disconnects

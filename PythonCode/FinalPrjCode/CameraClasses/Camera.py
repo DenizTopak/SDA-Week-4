@@ -10,10 +10,11 @@ class Camera():
         self.x2 = x2
         self.y2 = y2
 
-        self.selected_shape_info = selected_shape_info
+        self.selected_shape_infoX = selected_shape_info
+        self.selected_shape_infoY = selected_shape_info
 
         # Create a VideoCapture object for the camera (camera index 0 for built-in camera)
-        self.cap = cv2.VideoCapture(0)   
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)   
 
         # Check if the camera was opened successfully
         if not self.cap.isOpened():
@@ -30,8 +31,11 @@ class Camera():
         # Crop the frame using the specified coordinates
         cropped_frame = frame[y1:y2, x1:x2]
 
+        # Mirror image to match dobot and camera axis 
+        trueFrame = cv2.rotate(cropped_frame, cv2.ROTATE_90_CLOCKWISE)
+
         # Convert the cropped frame to grayscale
-        gray = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(trueFrame, cv2.COLOR_BGR2GRAY)
 
         # Apply Gaussian blur to reduce noise
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -47,69 +51,76 @@ class Camera():
 
         # Iterate through detected contours
         for contour in contours:
-            # Approximate the contour to determine its shape
-            epsilon = 0.04 * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, True)
+            # filter out small contours
+            if cv2.arcLength(contour, True) > 50:
+                # Approximate the contour to determine its shape
+                epsilon = 0.04 * cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, epsilon, True)
 
-            # Get the centroid of the contour
-            M = cv2.moments(contour)
-            if M["m00"] != 0:
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
+                # Get the centroid of the contour
+                M = cv2.moments(contour)
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
 
-                # Determine the color at the centroid
-                color = cropped_frame[cy, cx]
-                color_name = ""
-                if color[1] > 100 and color[2] < 100 and color[0] < 200:  # Green
-                    color_name = "Green"
-                elif color[2] > 180 and color[1] > 180:  # Yellow
-                    color_name = "Yellow"
-                elif color[0] > 200:  # Blue
-                    color_name = "Blue"
-                else:
-                    color_name = "Red"
+                    # Determine the color at the centroid
+                    color = trueFrame[cy, cx]
+                    color_name = ""
+                    if color[1] > 100 and color[2] < 100 and color[0] < 200:  # Green
+                        color_name = "Green"
+                    elif color[2] > 180 and color[1] > 180:  # Yellow
+                        color_name = "Yellow"
+                    elif color[0] > 200:  # Blue
+                        color_name = "Blue"
+                    else:
+                        color_name = "Red"
 
-                # Identify the shape based on the number of sides
-                if len(approx) == 3:
-                    shape = "Triangle"
-                elif len(approx) == 4:
-                    shape = "Square"
-                else:
-                    shape = "Circle"
+                    # Identify the shape based on the number of sides
+                    if len(approx) == 3:
+                        shape = "Triangle"
+                    elif len(approx) == 4:
+                        shape = "Square"
+                    else:
+                        shape = "Circle"
 
-                object_info = f"{shape}: {color_name} - Coordinates: ({cx}, {cy})"
-                self.center_points.append((cx, cy, shape, color_name, object_info))
+                    object_info = f"{shape}: {color_name} - Coordinates: ({cx}, {cy})"
+                    self.center_points.append((cx, cy, shape, color_name, object_info))
 
-                # Draw the shape and color text on the cropped frame
-                text_color = (255, 255, 255)
-                cv2.putText(cropped_frame, object_info, (cx - 50, cy - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
+                    # Draw the shape and color text on the cropped frame
+                    text_color = (255, 255, 255)
+                    cv2.putText(trueFrame, object_info, (cx - 50, cy - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
 
-                # Draw a contour around the detected shape on the cropped frame
-                cv2.drawContours(cropped_frame, [approx], -1, (0, 255, 0), 2)
+                    # Draw a contour around the detected shape on the cropped frame
+                    cv2.drawContours(trueFrame, [approx], -1, (0, 255, 0), 2)
 
-                # Draw a circle at the centroid on the cropped frame
-                cv2.circle(cropped_frame, (cx, cy), 5, (0, 0, 255), -1)
+                    # Draw a circle at the centroid on the cropped frame
+                    cv2.circle(trueFrame, (cx, cy), 5, (0, 0, 255), -1)
 
-        return cropped_frame, self.center_points
+        return trueFrame, self.center_points
 
 
     # Define a callback function for mouse events
     def on_mouse(self, event, x, y, flags, param):
-        self.selected_shape_info = None
+        self.selected_shape_infoX = None
+        self.selected_shape_infoY = None
         if event == cv2.EVENT_LBUTTONDOWN:
             for i, (cx, cy, shape, color_name, object_info) in enumerate(self.center_points):
                 if abs(x - cx) < 10 and abs(y - cy) < 10:
-                    self.selected_shape_info = f"Selected Object {i + 1}: {object_info}"
-                    print(self.selected_shape_info)
-
+                    self.selected_shape_infoX = cx
+                    self.selected_shape_infoY = cy
+                    print(f"Selected Object {i + 1}: {object_info}")
+                    
     
 
     def doCameraThings(self):
         # Read a frame from the camera
         ret, frame = self.cap.read()
 
+        # # Mirror image to match dobot and camera axis 
+        # frame_flip = cv2.flip(frame, 0)
+
         # Detect and identify objects in the frame and crop it
-        cropped_frame, center_points = self.detect_objects(frame, self.x1, self.y1, self.x2, self.y2)
+        cropped_frame, center_points = self.detect_objects(frame, self.x1, self.y1, self.x2, self.y2)        
 
         # Display the cropped frame with detected objects and their colors
         cv2.imshow('Object Detection', cropped_frame)
