@@ -12,6 +12,7 @@ named_colors = {
     "black": (0, 0, 0)
 }
 
+#Lines for the text (only 3 lines fit)
 line = [10, 25, 40]
 
 class GUI():
@@ -22,11 +23,13 @@ class GUI():
         self.y1 = y1
         self.y2 = y2
 
+    #Draw a black square to put the text on
     def DrawLabelTop(self, bg_color):
         thickness = cv2.FILLED
 
         cv2.rectangle(self.window, (0, 0), (300, 50), bg_color, thickness)
-    
+
+    #Put text in, position is arbitrary, however for best effect use (0, line[n])
     def Text(self, text, pos, bg_color):
         font_face = cv2.FONT_HERSHEY_SIMPLEX
         scale = 0.4
