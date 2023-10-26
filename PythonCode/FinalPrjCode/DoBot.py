@@ -13,7 +13,7 @@ CON_STR = {
     dType.DobotConnect.DobotConnect_Occupied: "DobotConnect_Occupied"
 }
 
-#Main control class for the DoBot Magician.
+#Main control class for the DoBot Magician, still contains some unused functions for possible later use
 class DoBotArm:
     def __init__(self, port, homeX, homeY, homeZ, home = True, homingWait = True):
         self.suction = False
@@ -25,7 +25,7 @@ class DoBotArm:
         self.homeZ = homeZ
         self.rotation = 0
         self.connected = False
-        self.home_time = 0
+        self.homeTime = 0
         self.dobotConnect(home, homingWait)
         self.lastIndex = 0
         self.rotation = self.getPosition()[3]
@@ -65,13 +65,13 @@ class DoBotArm:
         dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
 
         self.lastIndex = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
-        self.home_time = time.time()
+        self.homeTime = time.time()
         if(wait):
             time.sleep(1)
         
     def wait_rehoming(self):
-        if(self.home_time > (time.time() - 25)):
-            time.sleep(25 + self.home_time - time.time())
+        if(self.homeTime > (time.time() - 25)):
+            time.sleep(25 + self.homeTime - time.time())
 
     #Returns to home location and then disconnects
     def dobotDisconnect(self):

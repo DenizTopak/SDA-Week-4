@@ -16,7 +16,7 @@ xAddFactor = -4
 
 def main():
     
-    port = port_selection()
+    port = portSelection()
     homeX, homeY, homeZ = 70, -200, 60
     topLeftX, topLeftY = 0, 0
     groundLVL = 0
@@ -48,14 +48,14 @@ def main():
 
     # Instructions for user
     print("Done callibrating, starting arm functionality")
-    print("Click a shape centroid have the arm move it, press q to quit")
+    print("Click a shape centroid to have the arm move it, press q to quit")
 
     while True:
         # Run vision code
         camera.doCameraThings()
         
         # if a shape is clicked in the UI
-        if (camera.selected_shape_infoX != None and camera.selected_shape_infoY != None):
+        if (camera.selectedShapeX != None and camera.selectedShapeY != None):
             
             # Ask user for command
             response1 = input("press [q] to exit, [g] to grab clicked shape, [s] to manually toggle suction if in wrong state, [h] to rehome (followed by [Enter])")
@@ -66,10 +66,10 @@ def main():
             elif(response1 == "g"):
                 # Print target coordinate
                 print("moving to x y")
-                print(camera.selected_shape_infoX)
-                print(camera.selected_shape_infoY)
-                cX = camera.selected_shape_infoX
-                cY = camera.selected_shape_infoY 
+                print(camera.selectedShapeX)
+                print(camera.selectedShapeY)
+                cX = camera.selectedShapeX
+                cY = camera.selectedShapeY 
                 grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight)
             # Manually toggle the suction state in case it is still on from a previous run
             elif(response1 == "s"):
@@ -80,10 +80,10 @@ def main():
             
             else:
                 print("unknown command") 
-                
+
 
 # Function for port selection, generally not needed but used in case of multiple usb devices
-def port_selection():
+def portSelection():
     # Choosing port
     available_ports = list_ports.comports()
     print('Available COM-ports:')

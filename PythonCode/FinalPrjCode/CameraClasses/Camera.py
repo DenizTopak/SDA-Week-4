@@ -12,14 +12,14 @@ class Camera():
         self.y2 = y2
 
         # Information about clicked shape coordinates
-        self.selected_shape_infoX = selected_shape_info
-        self.selected_shape_infoY = selected_shape_info
+        self.selectedShapeX = selected_shape_info
+        self.selectedShapeY = selected_shape_info
 
         # Create a VideoCapture object for the camera (camera index 0 for built-in camera)
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)   
+        self.vidCapture = cv2.VideoCapture(0, cv2.CAP_DSHOW)   
 
         # Check if the camera was opened successfully
-        if not self.cap.isOpened():
+        if not self.vidCapture.isOpened():
             print("Error: Could not open the camera.")
             exit()
 
@@ -28,7 +28,7 @@ class Camera():
         
 
     # Function to detect and identify objects in the frame
-    def detect_objects(self, frame, x1, y1, x2, y2):
+    def detectObjects(self, frame, x1, y1, x2, y2):
         # Crop the frame using the specified coordinates
         cropped_frame = frame[y1:y2, x1:x2]
 
@@ -100,25 +100,25 @@ class Camera():
         return trueFrame, self.center_points
 
 
-    # Define a callback function for mouse events
+    # Define a callback function for mouse events to print shape location and set clicked shape coordinates
     def on_mouse(self, event, x, y, flags, param):
-        self.selected_shape_infoX = None
-        self.selected_shape_infoY = None
+        self.selectedShapeX = None
+        self.selectedShapeY = None
         if event == cv2.EVENT_LBUTTONDOWN:
             for i, (cx, cy, shape, color_name, object_info) in enumerate(self.center_points):
                 if abs(x - cx) < 10 and abs(y - cy) < 10:
-                    self.selected_shape_infoX = cx
-                    self.selected_shape_infoY = cy
+                    self.selectedShapeX = cx
+                    self.selectedShapeY = cy
                     print(f"Selected Object {i + 1}: {object_info}")
                     
     
 
     def doCameraThings(self):
         # Read a frame from the camera
-        ret, frame = self.cap.read()
+        ret, frame = self.vidCapture.read()
 
         # Detect and identify objects in the frame and crop it
-        cropped_frame, center_points = self.detect_objects(frame, self.x1, self.y1, self.x2, self.y2)        
+        cropped_frame, center_points = self.detectObjects(frame, self.x1, self.y1, self.x2, self.y2)        
 
         # Display the cropped frame with detected objects and their colors
         cv2.imshow('Object Detection', cropped_frame)
@@ -131,5 +131,5 @@ class Camera():
 
     def quitCamera(self):
         # Release the VideoCapture object and close any OpenCV windows
-        self.cap.release()
+        self.vidCapture.release()
         cv2.destroyAllWindows()
