@@ -56,14 +56,31 @@ def main():
         
         # if a shape is clicked in the UI
         if (camera.selected_shape_infoX != None and camera.selected_shape_infoY != None):
-            print("moving to (x y)")
-            cX = camera.selected_shape_infoX
-            cY = camera.selected_shape_infoY 
-            print(cX)
-            print(cY)
-            # Function for picking sequence
-            grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight)
             
+            # Ask user for command
+            response1 = input("press [q] to exit, [g] to grab clicked shape, [s] to manually toggle suction if in wrong state, [h] to rehome (followed by [Enter])")
+            # Quit program (also works when q is pressed in the UI window)
+            if(response1 == "q"):
+                break
+            # Grab and move the clicked object
+            elif(response1 == "g"):
+                # Print target coordinate
+                print("moving to x y")
+                print(camera.selected_shape_infoX)
+                print(camera.selected_shape_infoY)
+                cX = camera.selected_shape_infoX
+                cY = camera.selected_shape_infoY 
+                grabObj(botController, cX, cY, topLeftX, topLeftY, groundLVL, conveyorX, conveyorY, conveyorHeight)
+            # Manually toggle the suction state in case it is still on from a previous run
+            elif(response1 == "s"):
+                botController.toggleSuction()
+            # Manually home the arm in case something went wrong and it is not in a good position
+            elif(response1 == "h"):
+                botController.moveHome()
+            
+            else:
+                print("unknown command") 
+                
 
 # Function for port selection, generally not needed but used in case of multiple usb devices
 def port_selection():
