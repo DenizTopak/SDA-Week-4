@@ -10,7 +10,7 @@ Instructions to use Program:
 Now you are all set to use program.  
 
 This Assignment is made by:
-Deniz Topak: 4751884
-Bram Wouters: 4988612
-Pujan Vanani: 4838238
-Mikołaj Szymański: 4722620
+Deniz Topak: 4751884,
+Bram Wouters: 4988612,
+Pujan Vanani: 4838238,
+Mikołaj Szymański: 4722620,
